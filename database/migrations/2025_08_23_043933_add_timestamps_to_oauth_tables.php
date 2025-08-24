@@ -12,11 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('oauth_auth_codes', function (Blueprint $table) {
-            $table->timestamps();
+            if (!Schema::hasColumn('oauth_auth_codes', 'created_at')) {
+                $table->timestamps();
+            }
         });
 
         Schema::table('oauth_refresh_tokens', function (Blueprint $table) {
-            $table->timestamps();
+            if (!Schema::hasColumn('oauth_refresh_tokens', 'created_at')) {
+                $table->timestamps();
+            }
         });
     }
 
@@ -26,11 +30,15 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('oauth_auth_codes', function (Blueprint $table) {
-            $table->dropColumn(['created_at', 'updated_at']);
+            if (Schema::hasColumn('oauth_auth_codes', 'created_at')) {
+                $table->dropColumn(['created_at', 'updated_at']);
+            }
         });
 
         Schema::table('oauth_refresh_tokens', function (Blueprint $table) {
-            $table->dropColumn(['created_at', 'updated_at']);
+            if (Schema::hasColumn('oauth_refresh_tokens', 'created_at')) {
+                $table->dropColumn(['created_at', 'updated_at']);
+            }
         });
     }
 };

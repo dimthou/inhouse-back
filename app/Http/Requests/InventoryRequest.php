@@ -21,9 +21,11 @@ class InventoryRequest extends FormRequest
      */
     public function rules(): array
     {
+        $inventoryId = $this->route('inventory');
+        
         return [
             'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:100|unique:inventories,sku,' . $this->inventory,
+            'sku' => 'required|string|max:100|unique:inventories,sku,' . ($inventoryId ? $inventoryId->id : 'NULL'),
             'quantity' => 'required|integer|min:0',
             'price' => 'required|numeric|min:0',
         ];

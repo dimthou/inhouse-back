@@ -20,6 +20,7 @@ class OAuthAuthCode extends Model
         'client_id',
         'user_id',
         'scopes',
+        'redirect_uri',
         'revoked',
         'expires_at',
     ];

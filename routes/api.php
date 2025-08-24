@@ -17,14 +17,18 @@ Route::middleware('json')->group(function () {
         Route::post('/clients', [OAuthController::class, 'createClient']);
     });
 
-    // Legacy auth endpoints (for backward compatibility)
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/refresh', [AuthController::class, 'refresh']);
+    // Auth endpoints
+    Route::prefix('auth')->group(function () {
+        Route::post('/register', [AuthController::class, 'register']);
+        Route::post('/login', [AuthController::class, 'login']);
+        Route::post('/refresh', [AuthController::class, 'refresh']);
+    });
 
     Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::post('/logout-all', [AuthController::class, 'logoutAll']);
-        Route::apiResource('inventories', InventoryController::class);
+        Route::prefix('auth')->group(function () {
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::post('/logout-all', [AuthController::class, 'logoutAll']);
+        });
+        Route::apiResource('inventory', InventoryController::class);
     });
 });

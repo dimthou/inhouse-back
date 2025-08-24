@@ -16,6 +16,7 @@ return new class extends Migration
             $table->uuid('client_id');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('scopes')->nullable();
+            $table->string('redirect_uri')->nullable();
             $table->boolean('revoked');
             $table->dateTime('expires_at');
             $table->timestamps();
