@@ -156,7 +156,7 @@ class OAuthController extends Controller
         }
 
         // Verify client secret for confidential clients
-        if ($client->confidential() && $client->secret !== $data['client_secret']) {
+        if ($client->confidential() && !Hash::check($data['client_secret'] ?? '', $client->secret)) {
             return response()->json([
                 'error' => 'invalid_client',
                 'error_description' => 'Invalid client secret'
@@ -257,7 +257,7 @@ class OAuthController extends Controller
         }
 
         // Verify client secret for confidential clients
-        if ($client->confidential() && $client->secret !== $request->client_secret) {
+        if ($client->confidential() && !Hash::check($request->client_secret ?? '', $client->secret)) {
             return response()->json([
                 'error' => 'invalid_client',
                 'error_description' => 'Invalid client secret'

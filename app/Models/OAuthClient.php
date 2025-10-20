@@ -27,6 +27,8 @@ class OAuthClient extends Model
     ];
 
     protected $casts = [
+        // Ensure secrets are stored hashed at rest
+        'secret' => 'hashed',
         'personal_access_client' => 'boolean',
         'password_client' => 'boolean',
         'revoked' => 'boolean',
