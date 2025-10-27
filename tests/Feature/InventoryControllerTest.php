@@ -186,6 +186,55 @@ class InventoryControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_can_update_inventory_item_with_price()
+    {
+        // Arrange: Create an initial inventory item
+        $inventory = Inventory::factory()->create([
+            'name' => 'Original Product',
+            'sku' => 'ORIG-SKU',
+            'quantity' => 50,
+            'price' => 15.00,
+        ]);
+
+        // Prepare update data
+        $updateData = [
+            'price' => 25.00
+        ];
+
+        // Act: Perform the patch request
+        $response = $this->patchJson("/api/inventory/{$inventory->id}", $updateData);
+
+        // Assert: Response structure
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'name',
+                    'sku',
+                    'quantity',
+                    'price',
+                    'created_at',
+                    'updated_at',
+                ]
+            ]);
+
+        // Refresh the model to get updated data
+        $updatedInventory = Inventory::findOrFail($inventory->id);
+
+        // Assert: Database and model state
+        $this->assertEquals($updateData['price'], $updatedInventory->price);
+        $this->assertEquals($inventory->name, $updatedInventory->name);
+        $this->assertEquals($inventory->sku, $updatedInventory->sku);
+        $this->assertEquals($inventory->quantity, $updatedInventory->quantity);
+
+        // Additional database assertion
+        $this->assertDatabaseHas('inventories', [
+            'id' => $inventory->id,
+            'price' => $updateData['price'],
+        ]);
+    }
+
+    #[Test]
     public function it_cannot_update_inventory_with_invalid_data()
     {
         $inventory = Inventory::factory()->create();

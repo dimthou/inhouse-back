@@ -60,6 +60,17 @@ class InventoryController extends Controller
     }
 
     /**
+     * Partially update the specified resource in storage.
+     */
+    public function patch(InventoryRequest $request, Inventory $inventory)
+    {
+        $inventory->fill($request->validated());
+        $inventory->save();
+
+        return new InventoryResource($inventory);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Inventory $inventory)

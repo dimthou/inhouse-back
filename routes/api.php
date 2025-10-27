@@ -30,5 +30,6 @@ Route::middleware('json')->group(function () {
             Route::post('/logout-all', [AuthController::class, 'logoutAll']);
         });
         Route::apiResource('inventory', InventoryController::class);
+        Route::patch('inventory/{inventory}', [InventoryController::class, 'patch']);
     });
 });
