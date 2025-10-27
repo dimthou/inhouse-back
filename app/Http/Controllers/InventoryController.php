@@ -17,7 +17,9 @@ class InventoryController extends Controller
      */
     public function index(): AnonymousResourceCollection
     {
-        return InventoryResource::collection(Inventory::all());
+        // Use pagination to avoid loading all records into memory
+        $inventories = Inventory::orderByDesc('id')->paginate(15);
+        return InventoryResource::collection($inventories);
     }
 
     /**
@@ -26,7 +28,9 @@ class InventoryController extends Controller
     public function store(InventoryRequest $request): InventoryResource
     {
         $inventory = Inventory::create($request->validated());
-        return new InventoryResource($inventory);
+        return (new InventoryResource($inventory))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**

@@ -58,7 +58,7 @@ class OAuthService
 
         // Verify client secret for confidential clients
         $client = OAuthClient::find($clientId);
-        if ($client->confidential() && $client->secret !== $clientSecret) {
+        if ($client->confidential() && !\Illuminate\Support\Facades\Hash::check($clientSecret ?? '', $client->secret)) {
             return null;
         }
 
@@ -126,7 +126,7 @@ class OAuthService
         $client = $accessToken->client;
 
         // Verify client secret for confidential clients
-        if ($client->confidential() && $client->secret !== $clientSecret) {
+        if ($client->confidential() && !\Illuminate\Support\Facades\Hash::check($clientSecret ?? '', $client->secret)) {
             return null;
         }
 
