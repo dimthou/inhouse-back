@@ -6,6 +6,7 @@ use App\Models\Inventory;
 use App\Services\InventoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class InventoryServiceTest extends TestCase
@@ -20,7 +21,7 @@ class InventoryServiceTest extends TestCase
         $this->inventoryService = new InventoryService();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_add_inventory_quantity()
     {
         $inventory = Inventory::factory()->create([
@@ -32,7 +33,7 @@ class InventoryServiceTest extends TestCase
         $this->assertEquals(15, $updatedInventory->quantity);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_subtract_inventory_quantity()
     {
         $inventory = Inventory::factory()->create([
@@ -44,7 +45,7 @@ class InventoryServiceTest extends TestCase
         $this->assertEquals(5, $updatedInventory->quantity);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_negative_inventory_quantity()
     {
         $inventory = Inventory::factory()->create([
@@ -57,7 +58,7 @@ class InventoryServiceTest extends TestCase
         $this->inventoryService->adjustInventory($inventory->id, 15, 'subtract');
     }
 
-    /** @test */
+    #[Test]
     public function it_identifies_low_stock_items()
     {
         // Create some inventory items with varying quantities
@@ -72,7 +73,7 @@ class InventoryServiceTest extends TestCase
         $this->assertTrue($lowStockItems->contains('name', 'Low Stock Item 2'));
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_low_stock_alert()
     {
         // Mock the Log facade to verify warning is logged
@@ -91,7 +92,7 @@ class InventoryServiceTest extends TestCase
         $this->assertArrayHasKey('name', $alerts[0]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_perform_bulk_inventory_update()
     {
         $inventory1 = Inventory::factory()->create(['quantity' => 10]);
@@ -118,7 +119,7 @@ class InventoryServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_partial_failures_in_bulk_update()
     {
         $inventory1 = Inventory::factory()->create(['quantity' => 10]);

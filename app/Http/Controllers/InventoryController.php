@@ -5,32 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\InventoryRequest;
 use App\Http\Resources\InventoryResource;
 use App\Models\Inventory;
-use App\Services\InventoryService;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class InventoryController extends Controller
 {
     /**
-     * @var InventoryService
-     */
-    protected $inventoryService;
-
-    /**
-     * InventoryController constructor.
-     *
-     * @param InventoryService $inventoryService
-     */
-    public function __construct(InventoryService $inventoryService)
-    {
-        $this->inventoryService = $inventoryService;
-    }
-
-    /**
      * Display a listing of the resource.
-     *
-     * @return AnonymousResourceCollection
      */
     public function index(): AnonymousResourceCollection
     {
@@ -38,18 +21,7 @@ class InventoryController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
-     *
-     * @param InventoryRequest $request
-     * @return InventoryResource
      */
     public function store(InventoryRequest $request): InventoryResource
     {
@@ -59,9 +31,6 @@ class InventoryController extends Controller
 
     /**
      * Display the specified resource.
-     *
-     * @param Inventory $inventory
-     * @return InventoryResource
      */
     public function show(Inventory $inventory): InventoryResource
     {
@@ -69,46 +38,50 @@ class InventoryController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Inventory $inventory)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
-     *
-     * @param InventoryRequest $request
-     * @param Inventory $inventory
-     * @return InventoryResource
      */
     public function update(InventoryRequest $request, Inventory $inventory): InventoryResource
     {
-        $inventory->update($request->validated());
+        // Get validated data
+        $validatedData = $request->validated();
+
+        // Update the inventory item
+        $updated = $inventory->update($validatedData);
+
+        // Log update result
+        Log::info('Inventory Update Result', [
+            'update_successful' => $updated,
+            'inventory_after_update' => $inventory->toArray()
+        ]);
+
+        // Refresh the model to get the latest data
+        $inventory->refresh();
+
+        // Ensure we're passing a valid model to the resource
         return new InventoryResource($inventory);
     }
 
     /**
      * Partially update the specified resource in storage.
-     *
-     * @param InventoryRequest $request
-     * @param Inventory $inventory
-     * @return InventoryResource
      */
     public function patch(InventoryRequest $request, Inventory $inventory): InventoryResource
     {
-        $inventory->fill($request->validated());
+        // Validate only the provided fields
+        $validatedData = $request->validated();
+
+        // Fill only the provided fields
+        $inventory->fill($validatedData);
         $inventory->save();
 
+        // Refresh the model to get the latest data
+        $inventory->refresh();
+
+        // Return the updated resource
         return new InventoryResource($inventory);
     }
 
     /**
      * Remove the specified resource from storage.
-     *
-     * @param Inventory $inventory
-     * @return JsonResponse
      */
     public function destroy(Inventory $inventory): JsonResponse
     {
@@ -118,10 +91,6 @@ class InventoryController extends Controller
 
     /**
      * Adjust inventory quantity.
-     *
-     * @param int $inventoryId
-     * @param Request $request
-     * @return InventoryResource
      */
     public function adjustQuantity(int $inventoryId, Request $request): InventoryResource
     {
@@ -130,31 +99,30 @@ class InventoryController extends Controller
             'type' => 'required|in:add,subtract'
         ]);
 
-        $inventory = $this->inventoryService->adjustInventory(
-            $inventoryId, 
-            $validatedData['quantity'], 
-            $validatedData['type']
-        );
+        $inventory = Inventory::findOrFail($inventoryId);
+        
+        if ($validatedData['type'] === 'add') {
+            $inventory->quantity += $validatedData['quantity'];
+        } else {
+            $inventory->quantity -= $validatedData['quantity'];
+        }
+
+        $inventory->save();
 
         return new InventoryResource($inventory);
     }
 
     /**
      * Get low stock items.
-     *
-     * @return AnonymousResourceCollection
      */
     public function lowStockItems(): AnonymousResourceCollection
     {
-        $lowStockItems = $this->inventoryService->getLowStockItems();
+        $lowStockItems = Inventory::where('quantity', '<=', 10)->get();
         return InventoryResource::collection($lowStockItems);
     }
 
     /**
      * Bulk update inventory quantities.
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function bulkUpdate(Request $request): JsonResponse
     {
@@ -164,7 +132,24 @@ class InventoryController extends Controller
             'updates.*.quantity' => 'required|integer|min:0'
         ]);
 
-        $results = $this->inventoryService->bulkUpdateInventory($validatedData['updates']);
+        $results = [];
+        foreach ($validatedData['updates'] as $update) {
+            try {
+                $inventory = Inventory::findOrFail($update['id']);
+                $inventory->quantity = $update['quantity'];
+                $inventory->save();
+                $results[] = [
+                    'id' => $inventory->id,
+                    'status' => 'success'
+                ];
+            } catch (\Exception $e) {
+                $results[] = [
+                    'id' => $update['id'],
+                    'status' => 'failed',
+                    'message' => $e->getMessage()
+                ];
+            }
+        }
 
         return response()->json([
             'message' => 'Bulk inventory update processed',
