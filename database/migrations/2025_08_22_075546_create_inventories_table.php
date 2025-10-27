@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateInventoriesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,11 +13,14 @@ return new class extends Migration
     {
         Schema::create('inventories', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('sku')->unique();
-            $table->integer('quantity');
-            $table->decimal('price', 10, 2);
+            $table->string('name')->index(); // Add index for name searches
+            $table->string('sku')->unique(); // Ensure unique SKU with index
+            $table->integer('quantity')->index(); // Index for quantity-based queries
+            $table->decimal('price', 10, 2)->index(); // Index for price-based filtering
             $table->timestamps();
+
+            // Composite index for common query patterns
+            $table->index(['quantity', 'price']);
         });
     }
 
@@ -28,4 +31,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('inventories');
     }
-};
+}

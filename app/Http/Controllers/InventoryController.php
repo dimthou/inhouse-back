@@ -5,19 +5,51 @@ namespace App\Http\Controllers;
 use App\Http\Requests\InventoryRequest;
 use App\Http\Resources\InventoryResource;
 use App\Models\Inventory;
+use App\Repositories\InventoryRepository;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Log;
 
 class InventoryController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * @var InventoryRepository
      */
-    public function index(): AnonymousResourceCollection
+    protected $inventoryRepository;
+
+    /**
+     * InventoryController constructor.
+     *
+     * @param InventoryRepository $inventoryRepository
+     */
+    public function __construct(InventoryRepository $inventoryRepository)
     {
-        return InventoryResource::collection(Inventory::all());
+        $this->inventoryRepository = $inventoryRepository;
+    }
+
+    /**
+     * Display a paginated list of inventory items.
+     */
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        // Extract and validate filter parameters
+        $filters = [
+            'name' => $request->input('name'),
+            'min_quantity' => $request->input('min_quantity'),
+            'max_quantity' => $request->input('max_quantity'),
+            'min_price' => $request->input('min_price'),
+            'max_price' => $request->input('max_price'),
+            'sort_by' => $request->input('sort_by', 'created_at'),
+            'sort_direction' => $request->input('sort_direction', 'desc')
+        ];
+
+        // Get paginated inventory with optional filters
+        $inventoryPaginator = $this->inventoryRepository->getPaginatedInventory(
+            $request->input('per_page', 5),
+            array_filter($filters)
+        );
+
+        return InventoryResource::collection($inventoryPaginator);
     }
 
     /**
@@ -42,22 +74,8 @@ class InventoryController extends Controller
      */
     public function update(InventoryRequest $request, Inventory $inventory): InventoryResource
     {
-        // Get validated data
-        $validatedData = $request->validated();
-
-        // Update the inventory item
-        $updated = $inventory->update($validatedData);
-
-        // Log update result
-        Log::info('Inventory Update Result', [
-            'update_successful' => $updated,
-            'inventory_after_update' => $inventory->toArray()
-        ]);
-
-        // Refresh the model to get the latest data
+        $inventory->update($request->validated());
         $inventory->refresh();
-
-        // Ensure we're passing a valid model to the resource
         return new InventoryResource($inventory);
     }
 
@@ -66,17 +84,9 @@ class InventoryController extends Controller
      */
     public function patch(InventoryRequest $request, Inventory $inventory): InventoryResource
     {
-        // Validate only the provided fields
-        $validatedData = $request->validated();
-
-        // Fill only the provided fields
-        $inventory->fill($validatedData);
+        $inventory->fill($request->validated());
         $inventory->save();
-
-        // Refresh the model to get the latest data
         $inventory->refresh();
-
-        // Return the updated resource
         return new InventoryResource($inventory);
     }
 
@@ -117,7 +127,7 @@ class InventoryController extends Controller
      */
     public function lowStockItems(): AnonymousResourceCollection
     {
-        $lowStockItems = Inventory::where('quantity', '<=', 10)->get();
+        $lowStockItems = $this->inventoryRepository->getLowStockItems();
         return InventoryResource::collection($lowStockItems);
     }
 
@@ -132,24 +142,7 @@ class InventoryController extends Controller
             'updates.*.quantity' => 'required|integer|min:0'
         ]);
 
-        $results = [];
-        foreach ($validatedData['updates'] as $update) {
-            try {
-                $inventory = Inventory::findOrFail($update['id']);
-                $inventory->quantity = $update['quantity'];
-                $inventory->save();
-                $results[] = [
-                    'id' => $inventory->id,
-                    'status' => 'success'
-                ];
-            } catch (\Exception $e) {
-                $results[] = [
-                    'id' => $update['id'],
-                    'status' => 'failed',
-                    'message' => $e->getMessage()
-                ];
-            }
-        }
+        $results = $this->inventoryRepository->bulkUpdate($validatedData['updates']);
 
         return response()->json([
             'message' => 'Bulk inventory update processed',
