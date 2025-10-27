@@ -26,7 +26,7 @@ class InventoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->unique()->productName(),
+            'name' => $this->faker->unique()->words(3, true),
             'sku' => strtoupper(Str::random(8)),
             'quantity' => $this->faker->numberBetween(0, 100),
             'price' => $this->faker->randomFloat(2, 10, 1000),
