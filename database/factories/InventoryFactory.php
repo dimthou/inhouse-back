@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Inventory;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Inventory>
@@ -25,40 +26,30 @@ class InventoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->words(3, true),
-            'sku' => strtoupper($this->faker->bothify('SKU-####-????')),
-            'quantity' => $this->faker->numberBetween(0, 1000),
-            'price' => $this->faker->randomFloat(2, 1, 1000),
+            'name' => $this->faker->unique()->productName(),
+            'sku' => strtoupper(Str::random(8)),
+            'quantity' => $this->faker->numberBetween(0, 100),
+            'price' => $this->faker->randomFloat(2, 10, 1000),
         ];
     }
 
     /**
-     * Indicate that the inventory item is out of stock.
-     */
-    public function outOfStock(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'quantity' => 0,
-        ]);
-    }
-
-    /**
-     * Indicate that the inventory item has low stock.
+     * Indicate that the inventory is low in stock.
      */
     public function lowStock(): static
     {
         return $this->state(fn (array $attributes) => [
-            'quantity' => $this->faker->numberBetween(1, 10),
+            'quantity' => $this->faker->numberBetween(1, 10)
         ]);
     }
 
     /**
-     * Indicate that the inventory item is expensive.
+     * Indicate that the inventory is out of stock.
      */
-    public function expensive(): static
+    public function outOfStock(): static
     {
         return $this->state(fn (array $attributes) => [
-            'price' => $this->faker->randomFloat(2, 100, 10000),
+            'quantity' => 0
         ]);
     }
 }
