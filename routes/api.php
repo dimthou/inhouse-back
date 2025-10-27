@@ -29,7 +29,13 @@ Route::middleware('json')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::post('/logout-all', [AuthController::class, 'logoutAll']);
         });
-        Route::apiResource('inventory', InventoryController::class);
-        Route::patch('inventory/{inventory}', [InventoryController::class, 'patch']);
+        
+        // Inventory routes with additional custom methods
+        Route::prefix('inventory')->group(function () {
+            Route::apiResource('', InventoryController::class);
+            Route::post('/{inventoryId}/adjust', [InventoryController::class, 'adjustQuantity']);
+            Route::get('/low-stock', [InventoryController::class, 'lowStockItems']);
+            Route::post('/bulk-update', [InventoryController::class, 'bulkUpdate']);
+        });
     });
 });
