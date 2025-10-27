@@ -39,7 +39,7 @@ class RefreshToken extends Model
     /**
      * Generate a new refresh token.
      */
-    public static function generateToken(User $user, string $accessTokenId = null): self
+    public static function generateToken(User $user, string $accessTokenId): self
     {
         return self::create([
             'user_id' => $user->id,
