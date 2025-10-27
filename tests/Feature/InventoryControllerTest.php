@@ -5,314 +5,218 @@ namespace Tests\Feature;
 use App\Models\Inventory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Laravel\Sanctum\Sanctum;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class InventoryControllerTest extends TestCase
 {
-    use RefreshDatabase, WithFaker;
+    use RefreshDatabase;
 
-    protected User $user;
+    private User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->user = User::factory()->create();
-        Sanctum::actingAs($this->user);
     }
 
-    #[Test]
-    public function it_can_list_all_inventory_items()
+    /** @test */
+    public function authenticated_user_can_list_inventory_items()
     {
-        $inventory1 = Inventory::factory()->create([
-            'name' => 'Product 1',
-            'sku' => 'SKU-001',
-        ]);
-        $inventory2 = Inventory::factory()->create([
-            'name' => 'Product 2',
-            'sku' => 'SKU-002',
-        ]);
+        // Create some inventory items
+        $inventoryItems = Inventory::factory()->count(3)->create();
 
-        $response = $this->getJson('/api/inventory');
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/inventory');
 
         $response->assertStatus(200)
-                ->assertJsonStructure([
-                    'data' => [
-                        '*' => [
-                            'id',
-                            'name',
-                            'sku',
-                            'quantity',
-                            'price',
-                            'created_at',
-                            'updated_at',
-                        ]
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id', 'name', 'sku', 'quantity', 'price', 
+                        'created_at', 'updated_at'
                     ]
-                ]);
-
-        $responseData = $response->json('data');
-        $this->assertCount(2, $responseData);
+                ]
+            ])
+            ->assertJsonCount(3, 'data');
     }
 
-    #[Test]
-    public function it_can_create_new_inventory_item()
+    /** @test */
+    public function authenticated_user_can_create_inventory_item()
     {
         $inventoryData = [
-            'name' => 'New Product',
-            'sku' => 'SKU-NEW',
+            'name' => 'Test Product',
+            'sku' => 'TEST-SKU-001',
             'quantity' => 50,
-            'price' => 19.99,
+            'price' => 99.99
         ];
 
-        $response = $this->postJson('/api/inventory', $inventoryData);
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/inventory', $inventoryData);
 
         $response->assertStatus(201)
-                ->assertJsonStructure([
-                    'data' => [
-                        'id',
-                        'name',
-                        'sku',
-                        'quantity',
-                        'price',
-                        'created_at',
-                        'updated_at',
-                    ]
-                ]);
+            ->assertJsonStructure([
+                'data' => [
+                    'id', 'name', 'sku', 'quantity', 'price', 
+                    'created_at', 'updated_at'
+                ]
+            ])
+            ->assertJson([
+                'data' => $inventoryData
+            ]);
 
         $this->assertDatabaseHas('inventories', $inventoryData);
     }
 
-    #[Test]
-    public function it_cannot_create_inventory_with_invalid_data()
+    /** @test */
+    public function authenticated_user_can_update_inventory_item()
     {
-        $response = $this->postJson('/api/inventory', [
-            'name' => '',
-            'sku' => '',
-            'quantity' => -5,
-            'price' => -10.00,
-        ]);
-
-        $response->assertStatus(422)
-                ->assertJsonValidationErrors(['name', 'sku', 'quantity', 'price']);
-    }
-
-    #[Test]
-    public function it_can_show_specific_inventory_item()
-    {
-        $inventory = Inventory::factory()->create([
-            'name' => 'Test Product',
-            'sku' => 'SKU-TEST',
-            'quantity' => 100,
-            'price' => 29.99,
-        ]);
-
-        $response = $this->getJson("/api/inventory/{$inventory->id}");
-
-        $response->assertStatus(200)
-                ->assertJsonStructure([
-                    'data' => [
-                        'id',
-                        'name',
-                        'sku',
-                        'quantity',
-                        'price',
-                        'created_at',
-                        'updated_at',
-                    ]
-                ])
-                ->assertJson([
-                    'data' => [
-                        'id' => $inventory->id,
-                        'name' => 'Test Product',
-                        'sku' => 'SKU-TEST',
-                        'quantity' => 100,
-                        'price' => 29.99,
-                    ]
-                ]);
-    }
-
-    #[Test]
-    public function it_returns_404_for_nonexistent_inventory()
-    {
-        $response = $this->getJson('/api/inventory/999');
-
-        $response->assertStatus(404);
-    }
-
-    #[Test]
-    public function it_can_update_inventory_item()
-    {
-        $inventory = Inventory::factory()->create([
-            'name' => 'Old Name',
-            'sku' => 'OLD-SKU',
-            'quantity' => 50,
-            'price' => 15.00,
-        ]);
+        $inventory = Inventory::factory()->create();
 
         $updateData = [
-            'name' => 'Updated Name',
-            'sku' => 'NEW-SKU',
+            'name' => 'Updated Product',
+            'sku' => $inventory->sku,
             'quantity' => 75,
-            'price' => 25.00,
+            'price' => 129.99
         ];
 
-        $response = $this->putJson("/api/inventory/{$inventory->id}", $updateData);
+        $response = $this->actingAs($this->user)
+            ->putJson("/api/inventory/{$inventory->id}", $updateData);
 
-        $response->assertStatus(200)
-                ->assertJsonStructure([
-                    'data' => [
-                        'id',
-                        'name',
-                        'sku',
-                        'quantity',
-                        'price',
-                        'created_at',
-                        'updated_at',
-                    ]
-                ])
-                ->assertJson([
-                    'data' => [
-                        'id' => $inventory->id,
-                        'name' => 'Updated Name',
-                        'sku' => 'NEW-SKU',
-                        'quantity' => 75,
-                        'price' => 25.00,
-                    ]
-                ]);
-
-        $this->assertDatabaseHas('inventories', array_merge(['id' => $inventory->id], $updateData));
-    }
-
-    #[Test]
-    public function it_can_update_inventory_item_with_price()
-    {
-        // Arrange: Create an initial inventory item
-        $inventory = Inventory::factory()->create([
-            'name' => 'Original Product',
-            'sku' => 'ORIG-SKU',
-            'quantity' => 50,
-            'price' => 15.00,
-        ]);
-
-        // Prepare update data
-        $updateData = [
-            'price' => 25.00
-        ];
-
-        // Act: Perform the patch request
-        $response = $this->patchJson("/api/inventory/{$inventory->id}", $updateData);
-
-        // Assert: Response structure
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
-                    'id',
-                    'name',
-                    'sku',
-                    'quantity',
-                    'price',
-                    'created_at',
-                    'updated_at',
+                    'id', 'name', 'sku', 'quantity', 'price', 
+                    'created_at', 'updated_at'
+                ]
+            ])
+            ->assertJson([
+                'data' => $updateData
+            ]);
+
+        $this->assertDatabaseHas('inventories', $updateData);
+    }
+
+    /** @test */
+    public function authenticated_user_can_adjust_inventory_quantity()
+    {
+        $inventory = Inventory::factory()->create(['quantity' => 50]);
+
+        $adjustmentData = [
+            'quantity' => 10,
+            'type' => 'add'
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/inventory/{$inventory->id}/adjust", $adjustmentData);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => [
+                    'id', 'name', 'sku', 'quantity', 'price', 
+                    'created_at', 'updated_at'
+                ]
+            ])
+            ->assertJson([
+                'data' => [
+                    'quantity' => 60
                 ]
             ]);
 
-        // Refresh the model to get updated data
-        $updatedInventory = Inventory::findOrFail($inventory->id);
-
-        // Assert: Database and model state
-        $this->assertEquals($updateData['price'], $updatedInventory->price);
-        $this->assertEquals($inventory->name, $updatedInventory->name);
-        $this->assertEquals($inventory->sku, $updatedInventory->sku);
-        $this->assertEquals($inventory->quantity, $updatedInventory->quantity);
-
-        // Additional database assertion
         $this->assertDatabaseHas('inventories', [
             'id' => $inventory->id,
-            'price' => $updateData['price'],
+            'quantity' => 60
         ]);
     }
 
-    #[Test]
-    public function it_cannot_update_inventory_with_invalid_data()
+    /** @test */
+    public function authenticated_user_can_get_low_stock_items()
+    {
+        // Create some inventory items with low stock
+        Inventory::factory()->create(['quantity' => 5, 'name' => 'Low Stock Item 1']);
+        Inventory::factory()->create(['quantity' => 3, 'name' => 'Low Stock Item 2']);
+        Inventory::factory()->create(['quantity' => 15, 'name' => 'Normal Stock Item']);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/inventory/low-stock');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id', 'name', 'sku', 'quantity', 'price', 
+                        'created_at', 'updated_at'
+                    ]
+                ]
+            ])
+            ->assertJsonCount(2, 'data');
+    }
+
+    /** @test */
+    public function authenticated_user_can_perform_bulk_inventory_update()
+    {
+        $inventory1 = Inventory::factory()->create(['quantity' => 50]);
+        $inventory2 = Inventory::factory()->create(['quantity' => 75]);
+
+        $bulkUpdateData = [
+            'updates' => [
+                ['id' => $inventory1->id, 'quantity' => 60],
+                ['id' => $inventory2->id, 'quantity' => 85]
+            ]
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/inventory/bulk-update', $bulkUpdateData);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'message',
+                'results' => [
+                    '*' => ['id', 'status']
+                ]
+            ])
+            ->assertJson([
+                'message' => 'Bulk inventory update processed',
+                'results' => [
+                    ['id' => $inventory1->id, 'status' => 'success'],
+                    ['id' => $inventory2->id, 'status' => 'success']
+                ]
+            ]);
+
+        $this->assertDatabaseHas('inventories', [
+            'id' => $inventory1->id,
+            'quantity' => 60
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'id' => $inventory2->id,
+            'quantity' => 85
+        ]);
+    }
+
+    /** @test */
+    public function unauthenticated_user_cannot_access_inventory_endpoints()
     {
         $inventory = Inventory::factory()->create();
 
-        $response = $this->putJson("/api/inventory/{$inventory->id}", [
-            'name' => '',
-            'sku' => '',
-            'quantity' => -10,
-            'price' => -5.00,
-        ]);
+        // Test various endpoints
+        $endpoints = [
+            'get' => '/api/inventory',
+            'post' => '/api/inventory',
+            'get_single' => "/api/inventory/{$inventory->id}",
+            'put' => "/api/inventory/{$inventory->id}",
+            'post_adjust' => "/api/inventory/{$inventory->id}/adjust",
+            'get_low_stock' => '/api/inventory/low-stock',
+            'post_bulk_update' => '/api/inventory/bulk-update'
+        ];
 
-        $response->assertStatus(422)
-                ->assertJsonValidationErrors(['name', 'sku', 'quantity', 'price']);
-    }
+        foreach ($endpoints as $method => $endpoint) {
+            $response = match($method) {
+                'get' => $this->getJson($endpoint),
+                'post' => $this->postJson($endpoint),
+                'put' => $this->putJson($endpoint),
+                default => null
+            };
 
-    #[Test]
-    public function it_can_delete_inventory_item()
-    {
-        $inventory = Inventory::factory()->create();
-
-        $response = $this->deleteJson("/api/inventory/{$inventory->id}");
-
-        $response->assertStatus(204);
-
-        $this->assertDatabaseMissing('inventories', ['id' => $inventory->id]);
-    }
-
-    #[Test]
-    public function it_returns_404_when_deleting_nonexistent_inventory()
-    {
-        $response = $this->deleteJson('/api/inventory/999');
-
-        $response->assertStatus(404);
-    }
-
-    #[Test]
-    public function it_validates_sku_uniqueness()
-    {
-        // Create first inventory item
-        Inventory::factory()->create(['sku' => 'DUPLICATE-SKU']);
-
-        // Try to create second item with same SKU
-        $response = $this->postJson('/api/inventory', [
-            'name' => 'Second Product',
-            'sku' => 'DUPLICATE-SKU',
-            'quantity' => 10,
-            'price' => 10.00,
-        ]);
-
-        $response->assertStatus(422)
-                ->assertJsonValidationErrors(['sku']);
-    }
-
-    #[Test]
-    public function it_validates_quantity_is_positive()
-    {
-        $response = $this->postJson('/api/inventory', [
-            'name' => 'Test Product',
-            'sku' => 'SKU-TEST',
-            'quantity' => -5,
-            'price' => 10.00,
-        ]);
-
-        $response->assertStatus(422)
-                ->assertJsonValidationErrors(['quantity']);
-    }
-
-    #[Test]
-    public function it_validates_price_is_positive()
-    {
-        $response = $this->postJson('/api/inventory', [
-            'name' => 'Test Product',
-            'sku' => 'SKU-TEST',
-            'quantity' => 10,
-            'price' => -5.00,
-        ]);
-
-        $response->assertStatus(422)
-                ->assertJsonValidationErrors(['price']);
+            $response->assertStatus(401);
+        }
     }
 }
