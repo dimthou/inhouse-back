@@ -27,14 +27,19 @@ class InventoryControllerTest extends TestCase
         $inventoryItems = Inventory::factory()->count(3)->create();
 
         $response = $this->actingAs($this->user)
-            ->getJson('/api/inventory');
+            ->getJson('/api/v1/inventory');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
-                        'id', 'name', 'sku', 'quantity', 'price', 
-                        'created_at', 'updated_at'
+                        'id',
+                        'name',
+                        'sku',
+                        'quantity',
+                        'price',
+                        'created_at',
+                        'updated_at'
                     ]
                 ]
             ])
@@ -52,13 +57,18 @@ class InventoryControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->user)
-            ->postJson('/api/inventory', $inventoryData);
+            ->postJson('/api/v1/inventory', $inventoryData);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'data' => [
-                    'id', 'name', 'sku', 'quantity', 'price', 
-                    'created_at', 'updated_at'
+                    'id',
+                    'name',
+                    'sku',
+                    'quantity',
+                    'price',
+                    'created_at',
+                    'updated_at'
                 ]
             ])
             ->assertJson([
@@ -100,8 +110,13 @@ class InventoryControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
-                    'id', 'name', 'sku', 'quantity', 'price', 
-                    'created_at', 'updated_at'
+                    'id',
+                    'name',
+                    'sku',
+                    'quantity',
+                    'price',
+                    'created_at',
+                    'updated_at'
                 ]
             ])
             ->assertJson([
@@ -147,9 +162,9 @@ class InventoryControllerTest extends TestCase
         // Assert validation error
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
-                'name', 
-                'sku', 
-                'quantity', 
+                'name',
+                'sku',
+                'quantity',
                 'price'
             ]);
 
@@ -211,8 +226,13 @@ class InventoryControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
-                    'id', 'name', 'sku', 'quantity', 'price', 
-                    'created_at', 'updated_at'
+                    'id',
+                    'name',
+                    'sku',
+                    'quantity',
+                    'price',
+                    'created_at',
+                    'updated_at'
                 ]
             ])
             ->assertJson([
@@ -236,14 +256,19 @@ class InventoryControllerTest extends TestCase
         Inventory::factory()->create(['quantity' => 15, 'name' => 'Normal Stock Item']);
 
         $response = $this->actingAs($this->user)
-            ->getJson('/api/inventory/low-stock');
+            ->getJson('/api/v1/inventory/low-stock');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
-                        'id', 'name', 'sku', 'quantity', 'price', 
-                        'created_at', 'updated_at'
+                        'id',
+                        'name',
+                        'sku',
+                        'quantity',
+                        'price',
+                        'created_at',
+                        'updated_at'
                     ]
                 ]
             ])
@@ -264,7 +289,7 @@ class InventoryControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->user)
-            ->postJson('/api/inventory/bulk-update', $bulkUpdateData);
+            ->postJson('/api/v1/inventory/bulk-update', $bulkUpdateData);
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -315,8 +340,13 @@ class InventoryControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
-                    'id', 'name', 'sku', 'quantity', 'price', 
-                    'created_at', 'updated_at'
+                    'id',
+                    'name',
+                    'sku',
+                    'quantity',
+                    'price',
+                    'created_at',
+                    'updated_at'
                 ]
             ])
             ->assertJson([
@@ -345,17 +375,17 @@ class InventoryControllerTest extends TestCase
 
         // Test various endpoints
         $endpoints = [
-            'get' => '/api/inventory',
-            'post' => '/api/inventory',
+            'get' => '/api/v1/inventory',
+            'post' => '/api/v1/inventory',
             'get_single' => "/api/inventory/{$inventory->id}",
             'put' => "/api/inventory/{$inventory->id}",
             'post_adjust' => "/api/inventory/{$inventory->id}/adjust",
-            'get_low_stock' => '/api/inventory/low-stock',
-            'post_bulk_update' => '/api/inventory/bulk-update'
+            'get_low_stock' => '/api/v1/inventory/low-stock',
+            'post_bulk_update' => '/api/v1/inventory/bulk-update'
         ];
 
         foreach ($endpoints as $method => $endpoint) {
-            $response = match($method) {
+            $response = match ($method) {
                 'get' => $this->getJson($endpoint),
                 'post' => $this->postJson($endpoint),
                 'put' => $this->putJson($endpoint),
@@ -368,7 +398,7 @@ class InventoryControllerTest extends TestCase
 
             // Ensure response is not null before asserting
             $this->assertNotNull($response, "Response for endpoint {$endpoint} is null");
-            
+
             $response->assertStatus(401);
         }
     }

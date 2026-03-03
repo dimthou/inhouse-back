@@ -24,26 +24,25 @@ class AuthControllerTest extends TestCase
             'password_confirmation' => 'password123',
         ];
 
-        $response = $this->postJson('/api/auth/register', $userData);
-
+        $response = $this->postJson('/api/v1/auth/register', $userData);
         $response->assertStatus(201)
-                ->assertJsonStructure([
-                    'success',
-                    'message',
-                    'data' => [
-                        'user' => [
-                            'id',
-                            'name',
-                            'email',
-                            'created_at',
-                            'updated_at',
-                        ],
-                        'access_token',
-                        'refresh_token',
-                        'token_type',
-                        'expires_in',
-                    ]
-                ]);
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'user' => [
+                        'id',
+                        'name',
+                        'email',
+                        'created_at',
+                        'updated_at',
+                    ],
+                    'access_token',
+                    'refresh_token',
+                    'token_type',
+                    'expires_in',
+                ]
+            ]);
 
         $this->assertDatabaseHas('users', [
             'name' => 'John Doe',
@@ -62,7 +61,7 @@ class AuthControllerTest extends TestCase
     #[Test]
     public function user_cannot_register_with_invalid_data()
     {
-        $response = $this->postJson('/api/auth/register', [
+        $response = $this->postJson('/api/v1/auth/register', [
             'name' => '',
             'email' => 'invalid-email',
             'password' => '123',
@@ -70,7 +69,7 @@ class AuthControllerTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-                ->assertJsonValidationErrors(['name', 'email', 'password']);
+            ->assertJsonValidationErrors(['name', 'email', 'password']);
     }
 
     #[Test]
@@ -81,23 +80,23 @@ class AuthControllerTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'john@example.com',
             'password' => 'password123',
         ]);
 
         $response->assertStatus(200)
-                ->assertJsonStructure([
-                    'success',
-                    'message',
-                    'data' => [
-                        'user',
-                        'access_token',
-                        'refresh_token',
-                        'token_type',
-                        'expires_in',
-                    ]
-                ]);
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'user',
+                    'access_token',
+                    'refresh_token',
+                    'token_type',
+                    'expires_in',
+                ]
+            ]);
 
         $this->assertDatabaseHas('personal_access_tokens', [
             'name' => 'api',
@@ -113,16 +112,16 @@ class AuthControllerTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'john@example.com',
             'password' => 'wrongpassword',
         ]);
 
         $response->assertStatus(401)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Invalid credentials',
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Invalid credentials',
+            ]);
     }
 
     #[Test]
@@ -135,21 +134,21 @@ class AuthControllerTest extends TestCase
             'expires_at' => now()->addDays(30),
         ]);
 
-        $response = $this->postJson('/api/auth/refresh', [
+        $response = $this->postJson('/api/v1/auth/refresh', [
             'refresh_token' => $refreshToken->token,
         ]);
 
         $response->assertStatus(200)
-                ->assertJsonStructure([
-                    'success',
-                    'message',
-                    'data' => [
-                        'access_token',
-                        'refresh_token',
-                        'token_type',
-                        'expires_in',
-                    ]
-                ]);
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'access_token',
+                    'refresh_token',
+                    'token_type',
+                    'expires_in',
+                ]
+            ]);
 
         $this->assertDatabaseHas('personal_access_tokens', [
             'name' => 'api',
@@ -160,15 +159,15 @@ class AuthControllerTest extends TestCase
     #[Test]
     public function user_cannot_refresh_token_with_invalid_refresh_token()
     {
-        $response = $this->postJson('/api/auth/refresh', [
+        $response = $this->postJson('/api/v1/auth/refresh', [
             'refresh_token' => 'invalid-token',
         ]);
 
         $response->assertStatus(401)
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Invalid or expired refresh token',
-                ]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Invalid or expired refresh token',
+            ]);
     }
 
     #[Test]
@@ -177,13 +176,13 @@ class AuthControllerTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $response = $this->postJson('/api/auth/logout');
+        $response = $this->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'Logged out successfully',
-                ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'Logged out successfully',
+            ]);
 
         // Check that the current token was deleted
         $this->assertDatabaseMissing('personal_access_tokens', [
@@ -202,13 +201,13 @@ class AuthControllerTest extends TestCase
         $user->createToken('api');
         $user->createToken('mobile');
 
-        $response = $this->postJson('/api/auth/logout-all');
+        $response = $this->postJson('/api/v1/auth/logout-all');
 
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'message' => 'All sessions logged out successfully',
-                ]);
+            ->assertJson([
+                'success' => true,
+                'message' => 'All sessions logged out successfully',
+            ]);
 
         // Check that all tokens were deleted
         $this->assertDatabaseMissing('personal_access_tokens', [
@@ -219,10 +218,10 @@ class AuthControllerTest extends TestCase
     #[Test]
     public function unauthenticated_user_cannot_access_protected_endpoints()
     {
-        $response = $this->postJson('/api/auth/logout');
+        $response = $this->postJson('/api/v1/auth/logout');
         $response->assertStatus(401);
 
-        $response = $this->postJson('/api/auth/logout-all');
+        $response = $this->postJson('/api/v1/auth/logout-all');
         $response->assertStatus(401);
     }
 }
