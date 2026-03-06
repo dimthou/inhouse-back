@@ -7,21 +7,41 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RefreshTokenRequest;
 use App\Models\User;
 use App\Models\RefreshToken;
+use App\Modules\Tenant\Models\Tenant;
+use App\Modules\Warehouse\Models\Warehouse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
     public function register(RegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
+        $user = DB::transaction(function () use ($data) {
+            $tenant = Tenant::create([
+                'name' => $data['tenant_name'] ?? "{$data['name']}'s Shop",
+                'subscription_plan' => 'basic',
+                'is_active' => true,
+            ]);
+
+            $user = User::create([
+                'tenant_id' => $tenant->id,
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+            ]);
+
+            Warehouse::create([
+                'tenant_id' => $tenant->id,
+                'name' => 'Main Warehouse',
+                'is_active' => true,
+            ]);
+
+            return $user;
+        });
 
         // Create access token with short expiry (15 minutes)
         $accessToken = $user->createToken('api', ['*'], Carbon::now()->addMinutes(15));

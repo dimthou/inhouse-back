@@ -7,6 +7,8 @@ use App\Http\Controllers\OAuthController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use App\Modules\Inventory\Controllers\StockController;
+use App\Modules\Inventory\Controllers\StockMovementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -125,6 +127,23 @@ Route::prefix('v1')->group(function () {
 
             Route::delete('/{inventory}', [InventoryController::class, 'destroy'])
                 ->middleware('permission:inventory.delete');
+        });
+
+        // ==========================================
+        // STOCK MOVEMENTS (tenant scoped)
+        // ==========================================
+        Route::middleware('tenant')->prefix('stocks')->group(function () {
+            Route::get('/', [StockController::class, 'index'])
+                ->middleware('permission:inventory.view');
+
+            Route::post('/in', [StockMovementController::class, 'stockIn'])
+                ->middleware('permission:stock.in');
+
+            Route::post('/out', [StockMovementController::class, 'stockOut'])
+                ->middleware('permission:stock.out');
+
+            Route::post('/adjust', [StockMovementController::class, 'adjust'])
+                ->middleware('permission:stock.adjust');
         });
     });
 });

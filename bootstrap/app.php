@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'json' => \App\Http\Middleware\ForceJsonResponse::class,
             'role' => \App\Http\Middleware\CheckRole::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'tenant' => \App\Http\Middleware\SetTenantContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

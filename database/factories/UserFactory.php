@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Modules\Tenant\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -24,6 +25,19 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'tenant_id' => function () {
+                $tenant = Tenant::query()->first();
+
+                if ($tenant) {
+                    return $tenant->id;
+                }
+
+                return Tenant::create([
+                    'name' => 'Factory Tenant',
+                    'subscription_plan' => 'basic',
+                    'is_active' => true,
+                ])->id;
+            },
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
